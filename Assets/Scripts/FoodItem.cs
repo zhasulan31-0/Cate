@@ -1,9 +1,12 @@
-using UnityEngine;
+﻿using UnityEngine;
 using UnityEngine.EventSystems;
 
 public class FoodItem : MonoBehaviour, IBeginDragHandler, IDragHandler, IEndDragHandler
 {
-    public string foodName; // �������� (��������: "Coffee", "IceCream")
+    public string foodName;
+
+    [HideInInspector] public bool isFromCoffeeMachine = false;
+    [HideInInspector] public CoffeeMachineUI coffeeMachine;
 
     private Vector3 startPosition;
     private Transform startParent;
@@ -46,12 +49,24 @@ public class FoodItem : MonoBehaviour, IBeginDragHandler, IDragHandler, IEndDrag
 
         if (tray != null && tray.AddFood(this))
         {
-            Debug.Log($"��� {foodName} ��������� �� ������!");
+            Debug.Log($"Еда {foodName} добавлена на поднос!");
+
+            if (isFromCoffeeMachine && coffeeMachine != null)
+                coffeeMachine.TakeCoffee(); // только тут считается забранным
         }
         else
         {
-            transform.position = startPosition;
-            transform.SetParent(startParent);
+            if (isFromCoffeeMachine && coffeeMachine != null)
+            {
+                // вернем кофе на автомат
+                coffeeMachine.ReturnCoffee(this);
+            }
+            else
+            {
+                // обычная еда → вернуть на место
+                transform.position = startPosition;
+                transform.SetParent(startParent);
+            }
         }
     }
 }
