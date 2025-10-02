@@ -1,15 +1,14 @@
 using UnityEngine;
 using UnityEngine.EventSystems;
-using UnityEngine.UI;
 
 public class FoodItem : MonoBehaviour, IBeginDragHandler, IDragHandler, IEndDragHandler
 {
+    public string foodName; // название (например: "Coffee", "IceCream")
+
     private Vector3 startPosition;
     private Transform startParent;
     private Canvas canvas;
     private CanvasGroup canvasGroup;
-
-    public Sprite foodIcon; // иконка для UI подноса
 
     private void Awake()
     {
@@ -23,22 +22,17 @@ public class FoodItem : MonoBehaviour, IBeginDragHandler, IDragHandler, IEndDrag
         startParent = transform.parent;
 
         transform.SetParent(canvas.transform);
-
-        // всегда сверху
         transform.SetAsLastSibling();
-
         canvasGroup.blocksRaycasts = false;
     }
 
-
     public void OnDrag(PointerEventData eventData)
     {
-        Vector2 localPoint;
         if (RectTransformUtility.ScreenPointToLocalPointInRectangle(
             canvas.transform as RectTransform,
             eventData.position,
             canvas.worldCamera,
-            out localPoint))
+            out Vector2 localPoint))
         {
             transform.localPosition = localPoint;
         }
@@ -46,20 +40,16 @@ public class FoodItem : MonoBehaviour, IBeginDragHandler, IDragHandler, IEndDrag
 
     public void OnEndDrag(PointerEventData eventData)
     {
-        // возвращаем обратно способность ловить raycast
         canvasGroup.blocksRaycasts = true;
 
-        // Проверяем — попал ли на поднос
         TrayUI tray = eventData.pointerEnter ? eventData.pointerEnter.GetComponentInParent<TrayUI>() : null;
 
-        if (tray != null && tray.AddFood(foodIcon))
+        if (tray != null && tray.AddFood(this))
         {
-            Debug.Log("Еда добавлена на поднос: " + foodIcon.name);
-            Destroy(gameObject); // убираем физическую еду со сцены
+            Debug.Log($"Еда {foodName} добавлена на поднос!");
         }
         else
         {
-            // возвращаем обратно
             transform.position = startPosition;
             transform.SetParent(startParent);
         }

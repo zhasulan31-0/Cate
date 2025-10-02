@@ -1,33 +1,33 @@
 using UnityEngine;
+using UnityEngine.UI;
 
 public class TraySpawner : MonoBehaviour
 {
     [Header("Настройки")]
     public GameObject trayPrefab;    // Префаб подноса
     public Transform spawnPoint;     // Точка спавна
+    public Button spawnButton;       // UI-кнопка (привязать в инспекторе)
 
-    private bool isMouseInside = false;  // Флаг, находится ли мышь в зоне стопки
-
-    private void OnMouseEnter()
+    private void Awake()
     {
-        isMouseInside = true;
+        // подписываем кнопку
+        if (spawnButton != null)
+            spawnButton.onClick.AddListener(SpawnTray);
     }
 
-    private void OnMouseExit()
+    private void OnDestroy()
     {
-        isMouseInside = false;
-    }
-
-    void Update()
-    {
-        if (isMouseInside && Input.GetMouseButtonDown(0))
-        {
-            SpawnTray();
-        }
+        // обязательно убираем подписку, чтобы не было утечек
+        if (spawnButton != null)
+            spawnButton.onClick.RemoveListener(SpawnTray);
     }
 
     void SpawnTray()
     {
-        Instantiate(trayPrefab, spawnPoint.position, Quaternion.identity, spawnPoint);
+        if (trayPrefab != null && spawnPoint != null)
+        {
+            Instantiate(trayPrefab, spawnPoint.position, Quaternion.identity, spawnPoint);
+            Debug.Log("Поднос заспавнен!");
+        }
     }
 }

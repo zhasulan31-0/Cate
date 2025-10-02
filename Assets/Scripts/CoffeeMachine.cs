@@ -1,18 +1,36 @@
 using UnityEngine;
+using UnityEngine.UI;
 using System.Collections;
 
-public class CoffeeMachine2D : MonoBehaviour
+public class CoffeeMachineUI : MonoBehaviour
 {
-    [Header("Настройки")]
-    public GameObject coffeePrefab;    // Префаб готового кофе (UI элемент, например Image)
-    public Transform spawnPoint;       // Точка появления (UI объект под Canvas)
+    [Header("UI Настройки")]
+    public Button machineButton;       // Кнопка на картинке автомата
+    public GameObject coffeePrefab;    // Префаб готового кофе (UI Image)
+    public Transform spawnPoint;       // UI точка появления (например, пустой GameObject в Canvas)
     public float brewTime = 5f;        // Время приготовления (сек)
 
     private bool isBrewing = false;
     private bool hasCoffee = false;
     private GameObject currentCoffee;
 
-    private void OnMouseDown()
+    private void Awake()
+    {
+        if (machineButton != null)
+        {
+            machineButton.onClick.AddListener(OnMachineClick);
+        }
+    }
+
+    private void OnDestroy()
+    {
+        if (machineButton != null)
+        {
+            machineButton.onClick.RemoveListener(OnMachineClick);
+        }
+    }
+
+    private void OnMachineClick()
     {
         if (!isBrewing && !hasCoffee)
         {
@@ -42,9 +60,9 @@ public class CoffeeMachine2D : MonoBehaviour
             remainingTime--;
         }
 
-        // Создаём кофе как UI элемент под Canvas
-        currentCoffee = Instantiate(coffeePrefab, spawnPoint.position, Quaternion.identity, spawnPoint);
-        currentCoffee.transform.localPosition = Vector3.zero; // по центру spawnPoint
+        // Спавним UI-кофе
+        currentCoffee = Instantiate(coffeePrefab, spawnPoint);
+        currentCoffee.transform.localPosition = Vector3.zero;
 
         hasCoffee = true;
         isBrewing = false;

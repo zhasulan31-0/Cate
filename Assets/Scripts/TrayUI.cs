@@ -1,58 +1,115 @@
-using UnityEngine;
-using UnityEngine.UI;
+п»їusing UnityEngine;
+using UnityEngine.EventSystems;
 using System.Collections.Generic;
 
-public class TrayUI : MonoBehaviour
+public class TrayUI : MonoBehaviour, IBeginDragHandler, IDragHandler, IEndDragHandler
 {
-    [Header("Слоты подноса (UI Image)")]
-    public Image[] slots; // 3 предопределённых слота
-    private List<Sprite> storedFoods = new List<Sprite>();
+    [Header("РўРѕС‡РєРё СЃР»РѕС‚РѕРІ РЅР° РїРѕРґРЅРѕСЃРµ")]
+    public Transform[] slotPoints;
+
+    private List<FoodItem> storedFoods = new List<FoodItem>();
+    private List<string> foodNames = new List<string>(); // С…СЂР°РЅРёРј РЅР°Р·РІР°РЅРёСЏ РµРґС‹
 
     public int maxSlots = 3;
 
-    // Добавляем еду на поднос
-    public bool AddFood(Sprite foodSprite)
+    private Canvas canvas;
+    private CanvasGroup canvasGroup;
+    private Vector3 startPosition;
+    private Transform startParent;
+
+    private void Awake()
+    {
+        canvas = FindObjectOfType<Canvas>();
+        canvasGroup = gameObject.AddComponent<CanvasGroup>();
+    }
+
+    // Р”РѕР±Р°РІР»СЏРµРј РµРґСѓ РЅР° РїРѕРґРЅРѕСЃ
+    public bool AddFood(FoodItem food)
     {
         if (storedFoods.Count >= maxSlots)
         {
-            Debug.Log("Поднос полон!");
+            Debug.Log("РџРѕРґРЅРѕСЃ РїРѕР»РѕРЅ!");
             return false;
         }
 
-        storedFoods.Add(foodSprite);
-        UpdateSlots();
+        storedFoods.Add(food);
+        foodNames.Add(food.foodName);
+
+        int index = storedFoods.Count - 1;
+
+        food.transform.SetParent(slotPoints[index], false);
+        food.transform.localPosition = Vector3.zero;
+        food.transform.localScale = Vector3.one;
+
+        Debug.Log($"Р•РґР° {food.foodName} РїРѕСЃС‚Р°РІР»РµРЅР° РЅР° СЃР»РѕС‚ {index}");
         return true;
     }
 
-    // Удаляем еду по индексу
+    public List<string> GetFoodNames()
+    {
+        return foodNames;
+    }
+
     public void RemoveFood(int index)
     {
         if (index < 0 || index >= storedFoods.Count) return;
 
-        storedFoods.RemoveAt(index);
-        UpdateSlots();
-    }
+        FoodItem food = storedFoods[index];
+        if (food != null)
+            Destroy(food.gameObject);
 
-    // Обновление UI-слотов
-    private void UpdateSlots()
-    {
-        for (int i = 0; i < slots.Length; i++)
-        {
-            if (i < storedFoods.Count)
-            {
-                slots[i].sprite = storedFoods[i];
-                slots[i].enabled = true;
-            }
-            else
-            {
-                slots[i].sprite = null;
-                slots[i].enabled = false;
-            }
-        }
+        storedFoods.RemoveAt(index);
+        foodNames.RemoveAt(index);
     }
 
     public bool IsEmpty()
     {
         return storedFoods.Count == 0;
+    }
+
+    // ============== DRAG & DROP ==============
+    public void OnBeginDrag(PointerEventData eventData)
+    {
+        startPosition = transform.position;
+        startParent = transform.parent;
+
+        transform.SetParent(canvas.transform);
+        transform.SetAsLastSibling();
+        canvasGroup.blocksRaycasts = false;
+    }
+
+    public void OnDrag(PointerEventData eventData)
+    {
+        if (RectTransformUtility.ScreenPointToLocalPointInRectangle(
+            canvas.transform as RectTransform,
+            eventData.position,
+            canvas.worldCamera,
+            out Vector2 localPoint))
+        {
+            transform.localPosition = localPoint;
+        }
+    }
+
+    public void OnEndDrag(PointerEventData eventData)
+    {
+        canvasGroup.blocksRaycasts = true;
+
+        Client client = eventData.pointerEnter ? eventData.pointerEnter.GetComponentInParent<Client>() : null;
+
+        if (client != null)
+        {
+            Debug.Log("РџРѕРґРЅРѕСЃ РїРµСЂРµРґР°РЅ РєР»РёРµРЅС‚Сѓ!");
+            bool success = client.CheckOrder(this);
+
+            if (success)
+                Destroy(gameObject); // С‚РѕР»СЊРєРѕ РµСЃР»Рё Р·Р°РєР°Р· РїСЂР°РІРёР»СЊРЅС‹Р№
+            else
+                Debug.Log("РџРѕРґРЅРѕСЃ РѕСЃС‚Р°С‘С‚СЃСЏ, РєР»РёРµРЅС‚ Р¶РґС‘С‚ РІРµСЂРЅС‹Р№ Р·Р°РєР°Р·.");
+        }
+        else
+        {
+            Debug.Log("РџРѕРґРЅРѕСЃ Р±СЂРѕС€РµРЅ в†’ РёСЃС‡РµР·Р°РµС‚");
+            Destroy(gameObject);
+        }
     }
 }
