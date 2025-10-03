@@ -1,14 +1,16 @@
 using UnityEngine;
 using UnityEngine.UI;
 using System.Collections.Generic;
+using System.Linq;
 
 public class Client : MonoBehaviour
 {
     [Header("UI заказа")]
     public GameObject orderBubble;
-    public Image orderImage;
+    public Transform orderIconsParent;    // контейнер внутри Bubble
+    public GameObject orderIconPrefab;    // префаб иконки (Image + Text)
 
-    private MenuItem currentOrder;
+    private List<FoodItemData> currentOrder = new List<FoodItemData>();
 
     private void Start()
     {
@@ -17,29 +19,59 @@ public class Client : MonoBehaviour
 
     void MakeOrder()
     {
-        currentOrder = MenuDatabase.Instance.GetRandomItem();
+        currentOrder.Clear();
 
-        if (currentOrder != null)
+        int count = Random.Range(1, 4); // от 1 до 3
+        for (int i = 0; i < count; i++)
         {
-            orderImage.sprite = currentOrder.foodIcon;
-            orderBubble.SetActive(true);
-
-            Debug.Log($"Клиент заказал: {currentOrder.foodName}");
+            var item = MenuDatabase.Instance.GetRandomItem();
+            if (item != null)
+                currentOrder.Add(item);
         }
+
+        // группируем одинаковые блюда
+        var grouped = currentOrder
+            .GroupBy(f => f.foodName)
+            .Select(g => new { food = g.First(), count = g.Count() })
+            .ToList();
+
+        // очищаем старые иконки
+        foreach (Transform child in orderIconsParent)
+            Destroy(child.gameObject);
+
+        // создаем иконки заказа
+        foreach (var g in grouped)
+        {
+            GameObject iconObj = Instantiate(orderIconPrefab, orderIconsParent);
+
+            Image foodIcon = iconObj.GetComponentInChildren<Image>();
+            if (foodIcon != null)
+                foodIcon.sprite = g.food.foodIcon;
+
+            Text countText = iconObj.GetComponentInChildren<Text>();
+            if (countText != null)
+                countText.text = g.count > 1 ? $"x{g.count}" : "";
+        }
+
+        orderBubble.SetActive(true);
+
+        Debug.Log($"Клиент заказал: {string.Join(", ", currentOrder.Select(f => f.foodName))}");
     }
 
     public bool CheckOrder(TrayUI tray)
     {
-        List<string> foods = tray.GetFoodNames();
+        List<string> trayFoods = tray.GetFoodNames();
+        List<string> orderFoods = currentOrder.Select(f => f.foodName).ToList();
 
-        foreach (var foodName in foods)
+        // проверяем количество каждого блюда
+        bool equal = trayFoods.Count == orderFoods.Count &&
+                     trayFoods.GroupBy(x => x).All(g => orderFoods.Count(f => f == g.Key) == g.Count());
+
+        if (equal)
         {
-            if (foodName == currentOrder.foodName)
-            {
-                Debug.Log("Клиент доволен! Заказ выполнен.");
-                Leave();
-                return true;
-            }
+            Debug.Log("Клиент доволен! Заказ выполнен.");
+            Leave();
+            return true;
         }
 
         Debug.Log("Неправильный заказ! Клиент ждет ещё раз.");

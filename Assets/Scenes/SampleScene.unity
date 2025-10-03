@@ -172,8 +172,9 @@ MonoBehaviour:
   m_Script: {fileID: 11500000, guid: b1330ef3a7971ae4b87382e97a17355f, type: 3}
   m_Name: 
   m_EditorClassIdentifier: 
-  orderBubble: {fileID: 1608638317}
-  orderImage: {fileID: 296397377}
+  orderBubble: {fileID: 296397376}
+  orderIconsParent: {fileID: 296397379}
+  orderIconPrefab: {fileID: 0}
 --- !u!114 &9682260
 MonoBehaviour:
   m_ObjectHideFlags: 0
@@ -924,10 +925,8 @@ MonoBehaviour:
   m_Script: {fileID: 11500000, guid: b7f58757f6ae74f448e33b71195689b6, type: 3}
   m_Name: 
   m_EditorClassIdentifier: 
-  menuItems:
-  - foodName: Catpuchinno
-    foodIcon: {fileID: 21300000, guid: f7494d4e8f608c044b2e558ef8ec2b11, type: 3}
-    prefab: {fileID: 3757366480647600567, guid: 76159cfb96391f740b40a65ccc850cb2, type: 3}
+  foodPrefabs:
+  - {fileID: -7178806787336177614, guid: 76159cfb96391f740b40a65ccc850cb2, type: 3}
 --- !u!4 &1582718443
 Transform:
   m_ObjectHideFlags: 0
