@@ -1,9 +1,18 @@
 ﻿using UnityEngine;
 using UnityEngine.EventSystems;
 
-public class FoodItem : MonoBehaviour, IBeginDragHandler, IDragHandler, IEndDragHandler
+[System.Serializable]
+public class FoodItemData
 {
     public string foodName;
+    public Sprite foodIcon;
+    public GameObject prefab;  // если нужно спавнить 3D или UI версию
+}
+
+public class FoodItem : MonoBehaviour, IBeginDragHandler, IDragHandler, IEndDragHandler
+{
+    [Header("Данные о еде")]
+    public FoodItemData data;
 
     [HideInInspector] public bool isFromCoffeeMachine = false;
     [HideInInspector] public CoffeeMachineUI coffeeMachine;
@@ -16,9 +25,15 @@ public class FoodItem : MonoBehaviour, IBeginDragHandler, IDragHandler, IEndDrag
     private void Awake()
     {
         canvas = FindObjectOfType<Canvas>();
-        canvasGroup = gameObject.AddComponent<CanvasGroup>();
+        if (canvasGroup == null)
+            canvasGroup = gameObject.AddComponent<CanvasGroup>();
     }
 
+    public string GetName() => data != null ? data.foodName : "???";
+    public Sprite GetIcon() => data != null ? data.foodIcon : null;
+    public GameObject GetPrefab() => data != null ? data.prefab : null;
+
+    // ================= DRAG =================
     public void OnBeginDrag(PointerEventData eventData)
     {
         startPosition = transform.position;
@@ -45,28 +60,35 @@ public class FoodItem : MonoBehaviour, IBeginDragHandler, IDragHandler, IEndDrag
     {
         canvasGroup.blocksRaycasts = true;
 
-        TrayUI tray = eventData.pointerEnter ? eventData.pointerEnter.GetComponentInParent<TrayUI>() : null;
+        TrayUI[] trays = FindObjectsOfType<TrayUI>();
+        bool addedToTray = false;
 
-        if (tray != null && tray.AddFood(this))
+        foreach (var tray in trays)
         {
-            Debug.Log($"Еда {foodName} добавлена на поднос!");
+            RectTransform trayRect = tray.GetComponent<RectTransform>();
+            if (RectTransformUtility.RectangleContainsScreenPoint(trayRect, eventData.position, canvas.worldCamera))
+            {
+                if (tray.AddFood(this))
+                {
+                    Debug.Log($"Еда {GetName()} добавлена на поднос!");
 
-            if (isFromCoffeeMachine && coffeeMachine != null)
-                coffeeMachine.TakeCoffee(); // только тут считается забранным
+                    if (isFromCoffeeMachine && coffeeMachine != null)
+                    {
+                        coffeeMachine.TakeCoffee();
+                        isFromCoffeeMachine = false;
+                        coffeeMachine = null;
+                    }
+
+                    addedToTray = true;
+                    break;
+                }
+            }
         }
-        else
+
+        if (!addedToTray)
         {
-            if (isFromCoffeeMachine && coffeeMachine != null)
-            {
-                // вернем кофе на автомат
-                coffeeMachine.ReturnCoffee(this);
-            }
-            else
-            {
-                // обычная еда → вернуть на место
-                transform.position = startPosition;
-                transform.SetParent(startParent);
-            }
+            transform.position = startPosition;
+            transform.SetParent(startParent);
         }
     }
 }

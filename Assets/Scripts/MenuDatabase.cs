@@ -1,12 +1,12 @@
 using UnityEngine;
 using System.Collections.Generic;
 
-
 public class MenuDatabase : MonoBehaviour
 {
     public static MenuDatabase Instance;
 
-    public List<MenuItem> menuItems = new List<MenuItem>();
+    [Header("Список доступных блюд (префабы FoodItem)")]
+    public List<FoodItem> foodPrefabs = new List<FoodItem>();
 
     private void Awake()
     {
@@ -14,15 +14,19 @@ public class MenuDatabase : MonoBehaviour
         else Destroy(gameObject);
     }
 
-    public MenuItem GetRandomItem()
+    public FoodItemData GetRandomItem()
     {
-        if (menuItems.Count == 0) return null;
-        int index = Random.Range(0, menuItems.Count);
-        return menuItems[index];
+        if (foodPrefabs.Count == 0) return null;
+        int index = Random.Range(0, foodPrefabs.Count);
+        return foodPrefabs[index].data;
     }
 
-    public MenuItem GetItemByName(string name)
+    public FoodItemData GetItemByName(string name)
     {
-        return menuItems.Find(x => x.foodName == name);
+        foreach (var f in foodPrefabs)
+        {
+            if (f.data.foodName == name) return f.data;
+        }
+        return null;
     }
 }
