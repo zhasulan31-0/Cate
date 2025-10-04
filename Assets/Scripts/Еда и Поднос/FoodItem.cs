@@ -60,9 +60,10 @@ public class FoodItem : MonoBehaviour, IBeginDragHandler, IDragHandler, IEndDrag
     {
         canvasGroup.blocksRaycasts = true;
 
-        TrayUI[] trays = FindObjectsOfType<TrayUI>();
         bool addedToTray = false;
 
+        // --- проверка всех подносов ---
+        TrayUI[] trays = FindObjectsOfType<TrayUI>();
         foreach (var tray in trays)
         {
             RectTransform trayRect = tray.GetComponent<RectTransform>();
@@ -71,24 +72,37 @@ public class FoodItem : MonoBehaviour, IBeginDragHandler, IDragHandler, IEndDrag
                 if (tray.AddFood(this))
                 {
                     Debug.Log($"Еда {GetName()} добавлена на поднос!");
-
                     if (isFromCoffeeMachine && coffeeMachine != null)
                     {
                         coffeeMachine.TakeCoffee();
                         isFromCoffeeMachine = false;
                         coffeeMachine = null;
                     }
-
                     addedToTray = true;
                     break;
                 }
             }
         }
 
+        // --- проверка мусорки ---
         if (!addedToTray)
         {
+            TrashBin bin = FindObjectOfType<TrashBin>();
+            if (bin != null)
+            {
+                RectTransform binRect = bin.GetComponent<RectTransform>();
+                if (RectTransformUtility.RectangleContainsScreenPoint(binRect, eventData.position, canvas.worldCamera))
+                {
+                    bin.TrashFood(this); // ✅ вместо Destroy
+                    return;
+                }
+            }
+
+            // если никуда не попал → вернуться на место
             transform.position = startPosition;
             transform.SetParent(startParent);
         }
     }
+
+
 }

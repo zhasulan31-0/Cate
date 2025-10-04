@@ -1,10 +1,13 @@
 ﻿using UnityEngine;
 using UnityEngine.EventSystems;
-using UnityEngine.UI;
+using System;
 using System.Collections.Generic;
+using UnityEngine.UI;
 
 public class TrayUI : MonoBehaviour, IBeginDragHandler, IDragHandler, IEndDragHandler
 {
+    public event Action onTrayDestroyed;
+
     private List<FoodItem> storedFoods = new List<FoodItem>();
     private List<FoodItemData> storedData = new List<FoodItemData>(); // <--- теперь есть список данных
 
@@ -12,6 +15,7 @@ public class TrayUI : MonoBehaviour, IBeginDragHandler, IDragHandler, IEndDragHa
     private CanvasGroup canvasGroup;
     private Vector3 startPosition;
     private Transform startParent;
+
 
     private RectTransform rectTransform;
     private HorizontalLayoutGroup layoutGroup;
@@ -46,11 +50,18 @@ public class TrayUI : MonoBehaviour, IBeginDragHandler, IDragHandler, IEndDragHa
         if (food.data != null)
             storedData.Add(food.data);
 
+        // 🚫 Запрещаем её таскать обратно
+        var canvasGroup = food.GetComponent<CanvasGroup>();
+        if (canvasGroup != null)
+            canvasGroup.blocksRaycasts = true; // чтобы клики проходили
+        food.enabled = false; // отключаем сам скрипт FoodItem (он же Drag&Drop)
+
         AdjustSpacing();
 
         Debug.Log($"Еда {food.GetName()} поставлена на поднос (всего {storedFoods.Count})");
         return true;
     }
+
 
     private void AdjustSpacing()
     {
@@ -89,6 +100,25 @@ public class TrayUI : MonoBehaviour, IBeginDragHandler, IDragHandler, IEndDragHa
             Destroy(food.gameObject);
             AdjustSpacing();
         }
+    }
+
+    public void DestroyTray()
+    {
+        // уничтожаем всё, что на нём лежит
+        foreach (var food in storedFoods)
+        {
+            if (food != null) Destroy(food.gameObject);
+        }
+        storedFoods.Clear();
+        storedData.Clear();
+
+        onTrayDestroyed?.Invoke(); // 🔔 сообщаем спавнеру
+        Destroy(gameObject);
+    }
+
+    private void OnDestroy()
+    {
+        onTrayDestroyed?.Invoke();
     }
 
     public List<string> GetFoodNames()
@@ -136,19 +166,28 @@ public class TrayUI : MonoBehaviour, IBeginDragHandler, IDragHandler, IEndDragHa
 
         if (client != null)
         {
-            Debug.Log("Поднос передан клиенту!");
-            bool success = client.CheckOrder(this);
-
-            if (success)
+            // Список еды
+            List<string> foods = GetFoodNames();
+            if (foods.Count == 0)
             {
-                Destroy(gameObject);
-                return;
+                Debug.Log("Поднос передан клиенту! На подносе пусто.");
+            }
+            else
+            {
+                Debug.Log($"Поднос передан клиенту! На подносе: {string.Join(", ", foods)}");
             }
 
-            Debug.Log("Поднос остаётся, клиент ждёт верный заказ.");
+            client.CheckOrder(this);
+
+            // Поднос всегда уходит с клиентом
+            Destroy(gameObject);
+            return;
         }
 
+        // если клиента нет → вернуть на место
         transform.position = startPosition;
         transform.SetParent(startParent);
     }
+
+
 }
