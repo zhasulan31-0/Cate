@@ -1,5 +1,6 @@
 using UnityEngine;
 using System.Collections.Generic;
+using System.Linq;
 
 public class MenuDatabase : MonoBehaviour
 {
@@ -14,12 +15,16 @@ public class MenuDatabase : MonoBehaviour
         else Destroy(gameObject);
     }
 
-    public FoodItemData GetRandomItem()
+    public FoodItemData GetUniqueRandomItem(List<FoodItemData> source = null)
     {
-        if (foodPrefabs.Count == 0) return null;
-        int index = Random.Range(0, foodPrefabs.Count);
-        return foodPrefabs[index].data;
+        List<FoodItemData> list = source ?? foodPrefabs.Select(f => f.data).ToList();
+        // делаем уникальные по имени
+        var uniqueList = list.GroupBy(f => f.foodName).Select(g => g.First()).ToList();
+        if (uniqueList.Count == 0) return null;
+        int index = Random.Range(0, uniqueList.Count);
+        return uniqueList[index];
     }
+
 
     public FoodItemData GetItemByName(string name)
     {
