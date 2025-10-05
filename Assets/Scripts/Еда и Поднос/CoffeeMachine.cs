@@ -1,23 +1,32 @@
-using UnityEngine;
+п»їusing UnityEngine;
 using UnityEngine.UI;
 using System.Collections;
 
 public class CoffeeMachineUI : MonoBehaviour
 {
-    [Header("UI Настройки")]
+    [Header("UI РќР°СЃС‚СЂРѕР№РєРё")]
     public Button machineButton;
     public GameObject coffeePrefab;
     public Transform spawnPoint;
     public float brewTime = 5f;
 
+    [Header("РџСЂРѕРіСЂРµСЃСЃ Р±Р°СЂ")]
+    public Image progressBar; // СЃСЃС‹Р»РєР° РЅР° UI Image
+
     private bool isBrewing = false;
     private bool hasCoffee = false;
     private GameObject currentCoffee;
+
+    [Header("РќР°СЃС‚СЂРѕР№РєРё РґР°РЅРЅС‹С…")]
+    public FoodItemData coffeeData;
 
     private void Awake()
     {
         if (machineButton != null)
             machineButton.onClick.AddListener(OnMachineClick);
+
+        if (progressBar != null)
+            progressBar.fillAmount = 0f; // СЃС‚Р°СЂС‚РѕРІРѕРµ Р·РЅР°С‡РµРЅРёРµ
     }
 
     private void OnDestroy()
@@ -34,59 +43,68 @@ public class CoffeeMachineUI : MonoBehaviour
         }
         else if (isBrewing)
         {
-            Debug.Log("Кофемашина уже варит кофе!");
+            Debug.Log("РљРѕС„РµРјР°С€РёРЅР° СѓР¶Рµ РІР°СЂРёС‚ РєРѕС„Рµ!");
         }
         else if (hasCoffee)
         {
-            Debug.Log("Забери готовое кофе перед новым заказом!");
+            Debug.Log("Р—Р°Р±РµСЂРё РіРѕС‚РѕРІРѕРµ РєРѕС„Рµ РїРµСЂРµРґ РЅРѕРІС‹Рј Р·Р°РєР°Р·РѕРј!");
         }
     }
 
     private IEnumerator BrewCoffee()
     {
         isBrewing = true;
-        Debug.Log("Кофемашина: Начало приготовления...");
+        Debug.Log("РљРѕС„РµРјР°С€РёРЅР°: РќР°С‡Р°Р»Рѕ РїСЂРёРіРѕС‚РѕРІР»РµРЅРёСЏ...");
 
-        float remainingTime = brewTime;
-        while (remainingTime > 0)
+        float elapsed = 0f;
+
+        // РїРѕРєР°Р·С‹РІР°РµРј РїСЂРѕРіСЂРµСЃСЃ Р±Р°СЂ
+        if (progressBar != null)
+            progressBar.gameObject.SetActive(true);
+
+        while (elapsed < brewTime)
         {
-            Debug.Log("Осталось: " + remainingTime + " сек.");
-            yield return new WaitForSeconds(1f);
-            remainingTime--;
+            elapsed += Time.deltaTime;
+            if (progressBar != null)
+                progressBar.fillAmount = Mathf.Clamp01(elapsed / brewTime);
+
+            yield return null;
         }
 
-        // Спавним кофе
+        // СЃРїР°РІРЅРёРј РєРѕС„Рµ
         currentCoffee = Instantiate(coffeePrefab, spawnPoint);
         currentCoffee.transform.localPosition = Vector3.zero;
 
-        // сообщаем, что это кофе с автомата
         FoodItem fi = currentCoffee.GetComponent<FoodItem>();
         fi.isFromCoffeeMachine = true;
         fi.coffeeMachine = this;
+        fi.data = coffeeData;
 
         hasCoffee = true;
         isBrewing = false;
 
-        Debug.Log("Кофемашина: Кофе готов!");
+        Debug.Log("РљРѕС„РµРјР°С€РёРЅР°: РљРѕС„Рµ РіРѕС‚РѕРІ!");
+
+        // СЃРєСЂС‹РІР°РµРј РїСЂРѕРіСЂРµСЃСЃ Р±Р°СЂ
+        if (progressBar != null)
+            progressBar.gameObject.SetActive(false);
     }
 
-    // Вызывается только когда кофе реально попал на поднос
     public void TakeCoffee()
     {
         if (hasCoffee && currentCoffee != null)
         {
             hasCoffee = false;
             currentCoffee = null;
-            Debug.Log("Кофемашина: Кофе успешно забран на поднос!");
+            Debug.Log("РљРѕС„РµРјР°С€РёРЅР°: РљРѕС„Рµ СѓСЃРїРµС€РЅРѕ Р·Р°Р±СЂР°РЅ РЅР° РїРѕРґРЅРѕСЃ!");
         }
     }
 
-    // Возвращаем кофе на автомат, если игрок бросил мимо
     public void ReturnCoffee(FoodItem coffee)
     {
         coffee.transform.SetParent(spawnPoint, false);
         coffee.transform.localPosition = Vector3.zero;
         coffee.transform.localScale = Vector3.one;
-        Debug.Log("Кофе возвращено на автомат.");
+        Debug.Log("РљРѕС„Рµ РІРѕР·РІСЂР°С‰РµРЅРѕ РЅР° Р°РІС‚РѕРјР°С‚.");
     }
 }

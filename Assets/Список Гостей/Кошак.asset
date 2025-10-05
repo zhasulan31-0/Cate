@@ -12,12 +12,18 @@ MonoBehaviour:
   m_Script: {fileID: 11500000, guid: 5e2b33e289f66b24799cccfcdea55eb9, type: 3}
   m_Name: "\u041A\u043E\u0448\u0430\u043A"
   m_EditorClassIdentifier: 
-  clientName: "\u041E\u0431\u044B\u0447\u043D\u044B\u0439"
-  clientImage: {fileID: 21300000, guid: 2ba4afaa20362254ebea99048ed3bf1e, type: 3}
-  minOrders: 1
+  clientName: POP
+  clientImage: {fileID: 21300000, guid: fea8a702f1988614cbc23939645a769e, type: 3}
+  minOrders: 3
   maxOrders: 3
   paymentMultiplier: 1
   favoriteFoods:
-  - foodName: 
-    foodIcon: {fileID: 21300000, guid: f7494d4e8f608c044b2e558ef8ec2b11, type: 3}
-    prefab: {fileID: 3757366480647600567, guid: 76159cfb96391f740b40a65ccc850cb2, type: 3}
+  - {fileID: 11400000, guid: 4b49a6e588581fb48a081b3f4d8ec271, type: 2}
+  - {fileID: 11400000, guid: 85eacd068b7502e448f527f38391b20c, type: 2}
+  - {fileID: 11400000, guid: 35c21aaf779e62045a7eca5955698ed8, type: 2}
+  - {fileID: 11400000, guid: 5e1eff051b8a5c34bad6ca0ed7448772, type: 2}
+  - {fileID: 11400000, guid: 7bdb5b1ccade3b541bf9b3ab67ff4f4b, type: 2}
+  - {fileID: 11400000, guid: 4bf1ee8a40f364946b9385b2630b75c8, type: 2}
+  - {fileID: 11400000, guid: c977f90691867a14087e98ab38d75605, type: 2}
+  happyAnimationName: HappyPOP
+  happySound: {fileID: 8300000, guid: 3ec7179f495e0c641949cf145790f441, type: 3}

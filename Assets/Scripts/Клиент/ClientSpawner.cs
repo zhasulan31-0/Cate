@@ -1,23 +1,23 @@
-using System.Collections.Generic;
+п»їusing System.Collections.Generic;
 using UnityEngine;
 
 public class ClientSpawner : MonoBehaviour
 {
-    [Header("Настройки спавна")]
+    [Header("РќР°СЃС‚СЂРѕР№РєРё СЃРїР°РІРЅР°")]
     public RectTransform spawnPoint;
     public List<RectTransform> clientSlots;
     public GameObject clientPrefab;
 
-    [Header("Очередь")]
-    public float queueSpacing = 50f; // вертикальное смещение клиентов
+    [Header("РћС‡РµСЂРµРґСЊ")]
+    public float moveSpeed = 1f;
 
     private List<Client> activeClients = new List<Client>();
-    private Dictionary<RectTransform, List<Client>> slotQueues = new Dictionary<RectTransform, List<Client>>();
+    private Dictionary<RectTransform, Client> slotOwners = new Dictionary<RectTransform, Client>();
 
     private void Awake()
     {
         foreach (var slot in clientSlots)
-            slotQueues[slot] = new List<Client>();
+            slotOwners[slot] = null; // РёР·РЅР°С‡Р°Р»СЊРЅРѕ РІСЃРµ СЃР»РѕС‚С‹ РїСѓСЃС‚С‹Рµ
     }
 
     public void SpawnClient()
@@ -25,54 +25,42 @@ public class ClientSpawner : MonoBehaviour
         GameObject go = Instantiate(clientPrefab, spawnPoint);
         go.transform.localPosition = Vector3.zero;
         go.transform.localScale = Vector3.one * 0.4f;
-
         Client client = go.GetComponent<Client>();
         if (client != null)
         {
             client.SetSpawner(this);
+            ClientData data = ClientDatabase.Instance.GetRandomClientType();
+            client.Initialize(data);
             activeClients.Add(client);
         }
     }
 
-    public (RectTransform slot, int index) GetShortestQueue()
+    /// <summary>
+    /// Р’РѕР·РІСЂР°С‰Р°РµС‚ СЃРІРѕР±РѕРґРЅС‹Р№ СЃР»РѕС‚ РёР»Рё null, РµСЃР»Рё РІСЃРµ Р·Р°РЅСЏС‚С‹.
+    /// </summary>
+    public RectTransform GetFreeSlot(Client client)
     {
-        RectTransform chosenSlot = null;
-        int minCount = int.MaxValue;
-
-        foreach (var kv in slotQueues)
+        foreach (var kv in slotOwners)
         {
-            if (kv.Value.Count < minCount)
+            if (kv.Value == null) // СЃР»РѕС‚ СЃРІРѕР±РѕРґРµРЅ
             {
-                minCount = kv.Value.Count;
-                chosenSlot = kv.Key;
+                slotOwners[kv.Key] = client; // Р·Р°РЅРёРјР°РµРј
+                return kv.Key;
             }
         }
-
-        if (chosenSlot == null) return (null, 0);
-        return (chosenSlot, slotQueues[chosenSlot].Count);
+        return null; // РЅРµС‚ СЃРІРѕР±РѕРґРЅС‹С…
     }
 
-    public void AddToQueue(RectTransform slot, Client client)
+    public void FreeSlot(RectTransform slot, Client client)
     {
-        slotQueues[slot].Add(client);
+        if (slot != null && slotOwners.ContainsKey(slot) && slotOwners[slot] == client)
+        {
+            slotOwners[slot] = null; // РѕСЃРІРѕР±РѕР¶РґР°РµРј СЃР»РѕС‚
+        }
     }
 
-    public void RemoveFromQueue(RectTransform slot, Client client)
+    public Vector3 GetSlotPosition(RectTransform slot)
     {
-        if (!slotQueues.ContainsKey(slot)) return;
-        slotQueues[slot].Remove(client);
-        // Vertical Layout Group обновит позиции автоматически
-    }
-
-    public int GetQueueIndex(RectTransform slot, Client client)
-    {
-        if (!slotQueues.ContainsKey(slot)) return 0;
-        return slotQueues[slot].IndexOf(client);
-    }
-
-    public Vector3 GetQueuePosition(RectTransform slot, Client client)
-    {
-        int index = GetQueueIndex(slot, client);
-        return slot.position + new Vector3(0, -index * queueSpacing, 0);
+        return slot.position;
     }
 }
