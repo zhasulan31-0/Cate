@@ -5,10 +5,10 @@ using System.Collections;
 public class CoffeeMachineUI : MonoBehaviour
 {
     [Header("UI Настройки")]
-    public Button machineButton;       // Кнопка на картинке автомата
-    public GameObject coffeePrefab;    // Префаб готового кофе (UI Image)
-    public Transform spawnPoint;       // UI точка появления (например, пустой GameObject в Canvas)
-    public float brewTime = 5f;        // Время приготовления (сек)
+    public Button machineButton;
+    public GameObject coffeePrefab;
+    public Transform spawnPoint;
+    public float brewTime = 5f;
 
     private bool isBrewing = false;
     private bool hasCoffee = false;
@@ -17,17 +17,13 @@ public class CoffeeMachineUI : MonoBehaviour
     private void Awake()
     {
         if (machineButton != null)
-        {
             machineButton.onClick.AddListener(OnMachineClick);
-        }
     }
 
     private void OnDestroy()
     {
         if (machineButton != null)
-        {
             machineButton.onClick.RemoveListener(OnMachineClick);
-        }
     }
 
     private void OnMachineClick()
@@ -52,7 +48,6 @@ public class CoffeeMachineUI : MonoBehaviour
         Debug.Log("Кофемашина: Начало приготовления...");
 
         float remainingTime = brewTime;
-
         while (remainingTime > 0)
         {
             Debug.Log("Осталось: " + remainingTime + " сек.");
@@ -60,9 +55,14 @@ public class CoffeeMachineUI : MonoBehaviour
             remainingTime--;
         }
 
-        // Спавним UI-кофе
+        // Спавним кофе
         currentCoffee = Instantiate(coffeePrefab, spawnPoint);
         currentCoffee.transform.localPosition = Vector3.zero;
+
+        // сообщаем, что это кофе с автомата
+        FoodItem fi = currentCoffee.GetComponent<FoodItem>();
+        fi.isFromCoffeeMachine = true;
+        fi.coffeeMachine = this;
 
         hasCoffee = true;
         isBrewing = false;
@@ -70,13 +70,23 @@ public class CoffeeMachineUI : MonoBehaviour
         Debug.Log("Кофемашина: Кофе готов!");
     }
 
+    // Вызывается только когда кофе реально попал на поднос
     public void TakeCoffee()
     {
         if (hasCoffee && currentCoffee != null)
         {
-            Destroy(currentCoffee);
             hasCoffee = false;
-            Debug.Log("Кофемашина: Кофе забран!");
+            currentCoffee = null;
+            Debug.Log("Кофемашина: Кофе успешно забран на поднос!");
         }
+    }
+
+    // Возвращаем кофе на автомат, если игрок бросил мимо
+    public void ReturnCoffee(FoodItem coffee)
+    {
+        coffee.transform.SetParent(spawnPoint, false);
+        coffee.transform.localPosition = Vector3.zero;
+        coffee.transform.localScale = Vector3.one;
+        Debug.Log("Кофе возвращено на автомат.");
     }
 }
