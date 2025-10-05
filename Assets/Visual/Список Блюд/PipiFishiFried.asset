@@ -1,0 +1,19 @@
+%YAML 1.1
+%TAG !u! tag:unity3d.com,2011:
+--- !u!114 &11400000
+MonoBehaviour:
+  m_ObjectHideFlags: 0
+  m_CorrespondingSourceObject: {fileID: 0}
+  m_PrefabInstance: {fileID: 0}
+  m_PrefabAsset: {fileID: 0}
+  m_GameObject: {fileID: 0}
+  m_Enabled: 1
+  m_EditorHideFlags: 0
+  m_Script: {fileID: 11500000, guid: 1fdd58f754bfc1c478fe3e95d62f13fb, type: 3}
+  m_Name: PipiFishiFried
+  m_EditorClassIdentifier: 
+  foodName: PipiFishiFried
+  foodIcon: {fileID: 21300000, guid: 029220d3076a29841a476b025aa0f6f3, type: 3}
+  prefabUI: {fileID: 3757366480647600567, guid: 495f20e5c0ef5bb45bf4f4c5449ef87a, type: 3}
+  eatSound: {fileID: 8300000, guid: 58ce4cd73c936b1499b8dcfd64572cc1, type: 3}
+  price: 10

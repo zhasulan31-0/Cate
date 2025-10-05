@@ -1,39 +1,50 @@
 ﻿using UnityEngine;
 using UnityEngine.EventSystems;
 
-[System.Serializable]
-public class FoodItemData
-{
-    public string foodName;
-    public Sprite foodIcon;
-    public GameObject prefab;  // если нужно спавнить 3D или UI версию
-}
-
 public class FoodItem : MonoBehaviour, IBeginDragHandler, IDragHandler, IEndDragHandler
 {
-    [Header("Данные о еде")]
+    [Header("Данные о еде (ScriptableObject)")]
     public FoodItemData data;
 
     [HideInInspector] public bool isFromCoffeeMachine = false;
     [HideInInspector] public CoffeeMachineUI coffeeMachine;
+    [HideInInspector] public FoodShelf shelf;
 
     private Vector3 startPosition;
     private Transform startParent;
     private Canvas canvas;
     private CanvasGroup canvasGroup;
 
+    // --- Новый компонент ---
+    private AudioSource parentAudioSource;
+    public event System.Action<FoodItem> onPlacedOnTray;
+
+    public void OnPlacedOnTray()
+    {
+        onPlacedOnTray?.Invoke(this);
+    }
+
     private void Awake()
     {
         canvas = FindObjectOfType<Canvas>();
+
         if (canvasGroup == null)
             canvasGroup = gameObject.AddComponent<CanvasGroup>();
+
+        // Проверяем, есть ли AudioSource у родителя (Canvas или Root)
+        Transform root = canvas.transform;
+        parentAudioSource = root.GetComponent<AudioSource>();
+        if (parentAudioSource == null)
+        {
+            parentAudioSource = root.gameObject.AddComponent<AudioSource>();
+            parentAudioSource.playOnAwake = false;
+        }
     }
 
     public string GetName() => data != null ? data.foodName : "???";
     public Sprite GetIcon() => data != null ? data.foodIcon : null;
-    public GameObject GetPrefab() => data != null ? data.prefab : null;
 
-    // ================= DRAG =================
+    // ========== DRAG ==========
     public void OnBeginDrag(PointerEventData eventData)
     {
         startPosition = transform.position;
@@ -42,6 +53,14 @@ public class FoodItem : MonoBehaviour, IBeginDragHandler, IDragHandler, IEndDrag
         transform.SetParent(canvas.transform);
         transform.SetAsLastSibling();
         canvasGroup.blocksRaycasts = false;
+
+        // --- Проигрываем звук еды ---
+        if (data != null && data.eatSound != null && parentAudioSource != null)
+        {
+            parentAudioSource.clip = data.eatSound;
+            parentAudioSource.loop = false; // чтобы звук не зацикливался
+            parentAudioSource.Play();
+        }
     }
 
     public void OnDrag(PointerEventData eventData)
@@ -59,50 +78,41 @@ public class FoodItem : MonoBehaviour, IBeginDragHandler, IDragHandler, IEndDrag
     public void OnEndDrag(PointerEventData eventData)
     {
         canvasGroup.blocksRaycasts = true;
+        bool placed = false;
 
-        bool addedToTray = false;
-
-        // --- проверка всех подносов ---
-        TrayUI[] trays = FindObjectsOfType<TrayUI>();
-        foreach (var tray in trays)
+        // проверка подносов
+        foreach (var tray in FindObjectsOfType<TrayUI>())
         {
             RectTransform trayRect = tray.GetComponent<RectTransform>();
             if (RectTransformUtility.RectangleContainsScreenPoint(trayRect, eventData.position, canvas.worldCamera))
             {
                 if (tray.AddFood(this))
                 {
-                    Debug.Log($"Еда {GetName()} добавлена на поднос!");
+                    placed = true;
+
                     if (isFromCoffeeMachine && coffeeMachine != null)
                     {
                         coffeeMachine.TakeCoffee();
                         isFromCoffeeMachine = false;
                         coffeeMachine = null;
                     }
-                    addedToTray = true;
-                    break;
                 }
             }
         }
 
-        // --- проверка мусорки ---
-        if (!addedToTray)
+        // если никуда не положили — вернуть на место
+        if (!placed)
         {
-            TrashBin bin = FindObjectOfType<TrashBin>();
-            if (bin != null)
-            {
-                RectTransform binRect = bin.GetComponent<RectTransform>();
-                if (RectTransformUtility.RectangleContainsScreenPoint(binRect, eventData.position, canvas.worldCamera))
-                {
-                    bin.TrashFood(this); // ✅ вместо Destroy
-                    return;
-                }
-            }
-
-            // если никуда не попал → вернуться на место
             transform.position = startPosition;
             transform.SetParent(startParent);
         }
-    }
 
+        // ✅ Если предмет был с полки и **ушёл с полки** → спавним новую еду
+        if (shelf != null && transform.parent != shelf.transform)
+        {
+            shelf.ReplaceFood(this);
+            shelf = null;
+        }
+    }
 
 }

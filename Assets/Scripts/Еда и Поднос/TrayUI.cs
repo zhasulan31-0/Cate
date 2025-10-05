@@ -10,6 +10,7 @@ public class TrayUI : MonoBehaviour, IBeginDragHandler, IDragHandler, IEndDragHa
 
     private List<FoodItem> storedFoods = new List<FoodItem>();
     private List<FoodItemData> storedData = new List<FoodItemData>(); // <--- теперь есть список данных
+    public List<FoodItemData> GetFoodData() => new List<FoodItemData>(storedData);
 
     private Canvas canvas;
     private CanvasGroup canvasGroup;
@@ -47,20 +48,22 @@ public class TrayUI : MonoBehaviour, IBeginDragHandler, IDragHandler, IEndDragHa
         food.transform.localScale = Vector3.one;
 
         storedFoods.Add(food);
+
         if (food.data != null)
             storedData.Add(food.data);
 
-        // 🚫 Запрещаем её таскать обратно
-        var canvasGroup = food.GetComponent<CanvasGroup>();
-        if (canvasGroup != null)
-            canvasGroup.blocksRaycasts = true; // чтобы клики проходили
-        food.enabled = false; // отключаем сам скрипт FoodItem (он же Drag&Drop)
+        var cg = food.GetComponent<CanvasGroup>();
+        if (cg != null) cg.blocksRaycasts = true;
+        food.enabled = false;
+
+        // ⚡ Событие: еда добавлена на поднос
+        food.OnPlacedOnTray();
 
         AdjustSpacing();
-
-        Debug.Log($"Еда {food.GetName()} поставлена на поднос (всего {storedFoods.Count})");
+        Debug.Log($"Еда {food.GetName()} поставлена на поднос. На подносе теперь {storedFoods.Count} ед.");
         return true;
     }
+
 
 
     private void AdjustSpacing()
@@ -131,7 +134,6 @@ public class TrayUI : MonoBehaviour, IBeginDragHandler, IDragHandler, IEndDragHa
         return names;
     }
 
-    public List<FoodItemData> GetFoodData() => new List<FoodItemData>(storedData);
 
     public bool IsEmpty() => storedFoods.Count == 0;
 
@@ -157,6 +159,16 @@ public class TrayUI : MonoBehaviour, IBeginDragHandler, IDragHandler, IEndDragHa
             transform.localPosition = localPoint;
         }
     }
+    public int GetTotalPrice()
+    {
+        int total = 0;
+        foreach (var item in storedData)
+        {
+            total += item.price;
+        }
+        return total;
+    }
+
 
     public void OnEndDrag(PointerEventData eventData)
     {
