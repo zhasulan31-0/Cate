@@ -1,4 +1,4 @@
-using UnityEngine;
+ï»¿using UnityEngine;
 using TMPro;
 using System.Collections;
 
@@ -9,18 +9,13 @@ public class Wallet : MonoBehaviour
     [Header("UI")]
     public TextMeshProUGUI walletText;
 
-    [Header("Ñîõðàíåíèå")]
-    public string saveKey = "PlayerMoney";
+    [Header("ÐÐ½Ð¸Ð¼Ð°Ñ†Ð¸Ñ")]
+    public float animateDuration = 0.5f;
 
-    [Header("Àíèìàöèÿ")]
-    public float animateDuration = 0.5f; // ñêîðîñòü àíèìàöèè
-
-    private int money = 0;
     private Coroutine animateCoroutine;
 
     private void Awake()
     {
-        // Singleton
         if (Instance == null)
         {
             Instance = this;
@@ -28,75 +23,52 @@ public class Wallet : MonoBehaviour
         }
         else
         {
+            // ÐŸÐµÑ€ÐµÐ½Ð°Ð·Ð½Ð°Ñ‡Ð°ÐµÐ¼ UI Ð½Ð° Ð½Ð¾Ð²Ñ‹Ð¹ ÐºÐ¾Ð¼Ð¿Ð¾Ð½ÐµÐ½Ñ‚ Ð¸Ð· ÑÑ†ÐµÐ½Ñ‹
+            Instance.walletText = walletText;
             Destroy(gameObject);
-            return;
         }
-
-        LoadMoney();
-        UpdateUIImmediate();
     }
 
-    private void LoadMoney()
+    private void Start()
     {
-        money = PlayerPrefs.GetInt(saveKey, 0);
+        UpdateUIImmediate(UpgradeManager.Instance.GetMoney());
     }
 
-    private void SaveMoney()
+    private void OnEnable()
     {
-        PlayerPrefs.SetInt(saveKey, money);
-        PlayerPrefs.Save();
+        if (Instance != null)
+            UpdateUIImmediate(UpgradeManager.Instance.GetMoney());
     }
 
-    public int GetMoney() => money;
 
-    public void AddMoney(int amount)
+    public void UpdateUIAnimated(int targetMoney)
     {
-        int oldMoney = money;
-        money += amount;
-        SaveMoney();
-
         if (animateCoroutine != null)
             StopCoroutine(animateCoroutine);
-        animateCoroutine = StartCoroutine(AnimateMoney(oldMoney, money));
-
-        Debug.Log($"Çàðàáîòàíî: {amount}. Âñåãî â êîøåëüêå: {money}");
+        animateCoroutine = StartCoroutine(AnimateMoneyDisplay(targetMoney));
     }
 
-    public bool SpendMoney(int amount)
+    private IEnumerator AnimateMoneyDisplay(int targetMoney)
     {
-        if (money >= amount)
-        {
-            int oldMoney = money;
-            money -= amount;
-            SaveMoney();
+        int from = 0;
+        if (!string.IsNullOrEmpty(walletText.text))
+            int.TryParse(walletText.text.Replace("$ ", ""), out from);
 
-            if (animateCoroutine != null)
-                StopCoroutine(animateCoroutine);
-            animateCoroutine = StartCoroutine(AnimateMoney(oldMoney, money));
-
-            return true;
-        }
-        return false;
-    }
-
-    private IEnumerator AnimateMoney(int from, int to)
-    {
         float elapsed = 0f;
         while (elapsed < animateDuration)
         {
             elapsed += Time.unscaledDeltaTime;
             float t = Mathf.Clamp01(elapsed / animateDuration);
-            int displayValue = Mathf.RoundToInt(Mathf.Lerp(from, to, t));
+            int displayValue = Mathf.RoundToInt(Mathf.Lerp(from, targetMoney, t));
             walletText.text = $"$ {displayValue}";
             yield return null;
         }
 
-        walletText.text = $"$ {to}";
+        walletText.text = $"$ {targetMoney}";
     }
 
-    private void UpdateUIImmediate()
+    public void UpdateUIImmediate(int targetMoney)
     {
-        if (walletText != null)
-            walletText.text = $"$ {money}";
+        walletText.text = $"$ {targetMoney}";
     }
 }

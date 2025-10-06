@@ -187,13 +187,24 @@ public class Client : MonoBehaviour
             if (portraitAnimator != null) portraitAnimator.Play(WalkHash);
         }
 
-        // Уведомляем DayManager
+        // ✅ Уведомляем DayManager о результате клиента
         DayManager dayManager = FindObjectOfType<DayManager>();
         if (dayManager != null)
-            dayManager.NotifyClientFinished();
+        {
+            if (correctOrder)
+            {
+                // уже вызывается в CheckOrder при успешной подаче
+            }
+            else
+            {
+                // ❗ Ушёл недовольным, уведомляем
+                dayManager.NotifyClientFinished(false, 0);
+            }
+        }
 
         StartCoroutine(MoveBackAndDestroy(correctOrder));
     }
+
 
     private void PlayHappyAnimation()
     {
@@ -239,12 +250,15 @@ public class Client : MonoBehaviour
 
     private void ShowOrderUI(bool show)
     {
-        if (orderBubble != null)
-        {
-            orderBubble.SetActive(show);
-            orderBubble.transform.SetAsFirstSibling();
-        }
+        if (orderBubble == null) return;
+
+        orderBubble.SetActive(show);
+
+        // Делаем пузырь выше по локальной иерархии относительно его родителя
+        orderBubble.transform.SetAsLastSibling();
     }
+
+
 
     public void MakeOrder()
     {
@@ -325,11 +339,26 @@ public class Client : MonoBehaviour
 
         if (equal)
         {
-            int payment = tray.GetTotalPrice();
-            Wallet.Instance?.AddMoney(payment);
-            Debug.Log($"{clientData.clientName} оплатил заказ: {payment}");
+            if (equal)
+            {
+                int basePayment = tray.GetTotalPrice();
+                float multiplier = clientData != null ? clientData.paymentMultiplier : 1f;
+                int finalPayment = Mathf.RoundToInt(basePayment * multiplier);
+                DayManager dayManager = FindObjectOfType<DayManager>();
 
-            OnOrderServed(); // останавливаем таймер терпения
+                // Добавляем деньги игроку
+                UpgradeManager.Instance?.AddMoney(finalPayment);
+
+                // Подробный отчёт в консоль
+                Debug.Log($"💰 Клиент {clientData.clientName} оплатил заказ:");
+                Debug.Log($"   ├ Базовая сумма: {basePayment}$");
+                Debug.Log($"   ├ Множитель клиента: x{multiplier:F2}");
+                Debug.Log($"   └ Итоговая сумма: {finalPayment}$");
+                dayManager.NotifyClientFinished(true, finalPayment);
+
+                OnOrderServed(); // останавливаем таймер терпения
+            }
+
         }
 
         return equal;

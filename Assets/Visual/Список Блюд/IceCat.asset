@@ -16,4 +16,4 @@ MonoBehaviour:
   foodIcon: {fileID: 21300000, guid: 3f1bc00290986bb468430bacb10a9fec, type: 3}
   prefabUI: {fileID: 3757366480647600567, guid: b1535e17f4168ed44abd1251c2d9a728, type: 3}
   eatSound: {fileID: 8300000, guid: d045619831eaf8941b6931236206e864, type: 3}
-  price: 10
+  price: 6

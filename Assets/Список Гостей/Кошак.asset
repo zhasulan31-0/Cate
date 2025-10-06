@@ -14,7 +14,7 @@ MonoBehaviour:
   m_EditorClassIdentifier: 
   clientName: POP
   clientImage: {fileID: 21300000, guid: fea8a702f1988614cbc23939645a769e, type: 3}
-  minOrders: 3
+  minOrders: 1
   maxOrders: 3
   paymentMultiplier: 1
   favoriteFoods:
@@ -27,3 +27,6 @@ MonoBehaviour:
   - {fileID: 11400000, guid: c977f90691867a14087e98ab38d75605, type: 2}
   happyAnimationName: HappyPOP
   happySound: {fileID: 8300000, guid: 3ec7179f495e0c641949cf145790f441, type: 3}
+  patienceTime: 25
+  defaultPatienceTime: 20
+  defaultPaymentMultiplier: 1.2

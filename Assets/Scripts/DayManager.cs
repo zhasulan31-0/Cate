@@ -1,10 +1,12 @@
-using System.Collections;
+п»їusing System.Collections;
 using UnityEngine;
 using UnityEngine.SceneManagement;
 
 public class DayManager : MonoBehaviour
 {
-    [Header("Настройки дня")]
+    public static DayManager Instance { get; private set; }
+
+    [Header("РќР°СЃС‚СЂРѕР№РєРё РґРЅСЏ")]
     public int currentDay = 1;
     public int maxDay = 10;
     public int startClients = 10;
@@ -14,36 +16,75 @@ public class DayManager : MonoBehaviour
     public float maxSpawnInterval = 20f;
     public float spawnIntervalReductionPerDay = 1.5f;
 
-    [Header("Ссылки")]
+    [Header("РЎСЃС‹Р»РєРё")]
     public ClientSpawner spawner;
-    public RestaurantMenuUI menuUI; // ссылка на UI меню
+    public DayReportUI reportUI;
 
     private int clientsToSpawn;
-    private int spawnedClients = 0;
-    private int finishedClients = 0;
+    private int spawnedClients;
+    private int finishedClients;
+    private int happyClients;
+    private int unhappyClients;
+    private int totalEarned;
 
-    private void Start()
+    private void Awake()
     {
-        StartDay(currentDay);
+        if (Instance != null && Instance != this)
+        {
+            Destroy(gameObject);
+            return;
+        }
+
+        Instance = this;
+        DontDestroyOnLoad(gameObject);
+        SceneManager.sceneLoaded += OnSceneLoaded;
+    }
+
+    private void OnDestroy()
+    {
+        SceneManager.sceneLoaded -= OnSceneLoaded;
+    }
+
+    private void OnSceneLoaded(Scene scene, LoadSceneMode mode)
+    {
+        if (scene.name == "SampleScene")
+        {
+            // РћР±РЅРѕРІР»СЏРµРј СЃСЃС‹Р»РєРё РЅР° РѕР±СЉРµРєС‚С‹ СЃС†РµРЅС‹
+            spawner = FindObjectOfType<ClientSpawner>();
+            reportUI = FindObjectOfType<DayReportUI>();
+
+            if (reportUI != null)
+                reportUI.gameObject.SetActive(false);
+
+            currentDay = PlayerPrefs.GetInt("CurrentDay", 1);
+            StartDay(currentDay);
+        }
     }
 
     public void StartDay(int day)
     {
-        currentDay = day;
+        currentDay = Mathf.Clamp(day, 1, maxDay);
+        PlayerPrefs.SetInt("CurrentDay", currentDay);
+        PlayerPrefs.Save();
 
         clientsToSpawn = Mathf.RoundToInt(Mathf.Lerp(startClients, endClients, (currentDay - 1f) / (maxDay - 1f)));
         spawnedClients = 0;
         finishedClients = 0;
+        happyClients = 0;
+        unhappyClients = 0;
+        totalEarned = 0;
 
         StartCoroutine(SpawnClientsRoutine());
-        Debug.Log($"День {currentDay} начался! Всего клиентов: {clientsToSpawn}");
+        Debug.Log($"рџ“… Р”РµРЅСЊ {currentDay} РЅР°С‡Р°Р»СЃСЏ! РљР»РёРµРЅС‚РѕРІ СЃРµРіРѕРґРЅСЏ: {clientsToSpawn}");
     }
 
     private IEnumerator SpawnClientsRoutine()
     {
         while (spawnedClients < clientsToSpawn)
         {
-            spawner.SpawnClient();
+            if (spawner != null)
+                spawner.SpawnClient();
+
             spawnedClients++;
 
             float interval = Random.Range(minSpawnInterval, maxSpawnInterval);
@@ -53,54 +94,54 @@ public class DayManager : MonoBehaviour
         }
     }
 
-    public void NotifyClientFinished()
+    public void NotifyClientFinished(bool wasHappy, int payment = 0)
     {
         finishedClients++;
 
-        if (finishedClients >= clientsToSpawn)
+        if (wasHappy)
         {
-            EndDay();
+            happyClients++;
+            totalEarned += payment;
         }
+        else
+        {
+            unhappyClients++;
+        }
+
+        if (finishedClients >= clientsToSpawn)
+            EndDay();
     }
 
     private void EndDay()
     {
-        Debug.Log($"День {currentDay} закончился!");
+        Debug.Log($"вњ… Р”РµРЅСЊ {currentDay} Р·Р°РєРѕРЅС‡РµРЅ!");
+        Debug.Log($"Р”РѕРІРѕР»СЊРЅС‹С…: {happyClients} | РќРµРґРѕРІРѕР»СЊРЅС‹С…: {unhappyClients} | Р—Р°СЂР°Р±РѕС‚Р°РЅРѕ: {totalEarned}");
 
-        // если дни не исчерпаны — показываем меню магазина с паузой
-        if (currentDay < maxDay)
+        if (reportUI != null)
+            reportUI.ShowReport(currentDay, clientsToSpawn, happyClients, unhappyClients, totalEarned);
+    }
+
+    public void PrepareNextDay()
+    {
+        int nextDay = currentDay + 1;
+
+        if (nextDay > maxDay)
         {
-            if (menuUI != null)
-                menuUI.OpenMenu(); // открываем меню с анимацией и ставим игру на паузу
+            Debug.Log("рџЏЃ Р’СЃРµ РґРЅРё Р·Р°РІРµСЂС€РµРЅС‹! РЎР±СЂРѕСЃ РїСЂРѕРіСЂРµСЃСЃР° Рё РІРѕР·РІСЂР°С‚ РІ РіР»Р°РІРЅРѕРµ РјРµРЅСЋ...");
+            UpgradeManager.Instance?.ResetProgress();
+
+            PlayerPrefs.DeleteKey("CurrentDay");
+            currentDay = 1;
+
+            SceneManager.LoadScene("MainMenu");
         }
         else
         {
-            // все дни пройдены — сброс и переход на MainMenu
-            ResetProgress();
-            SceneManager.LoadScene("MainMenu");
-        }
-    }
+            PlayerPrefs.SetInt("CurrentDay", nextDay);
+            PlayerPrefs.Save();
 
-    // вызывается кнопкой "Закрыть магазин"
-    public void OnCloseShop()
-    {
-        if (menuUI != null)
-            menuUI.CloseMenu();
-
-        if (currentDay < maxDay)
-        {
-            StartDay(currentDay + 1);
+            Debug.Log($"в–¶пёЏ РџРµСЂРµС…РѕРґ Рє СЃР»РµРґСѓСЋС‰РµРјСѓ РґРЅСЋ ({nextDay})");
+            SceneManager.LoadScene("SampleScene");
         }
-        else
-        {
-            ResetProgress();
-            SceneManager.LoadScene("MainMenu");
-        }
-    }
-
-    private void ResetProgress()
-    {
-        PlayerPrefs.DeleteKey("PlayerMoney");
-        currentDay = 1;
     }
 }
